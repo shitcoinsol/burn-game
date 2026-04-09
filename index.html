@@ -183,11 +183,11 @@ tailwind.config = {
       <div class="relative z-10 text-center px-4">
         <div class="badge-min inline-flex items-center gap-1.5 font-mono text-burn-orange/80 mb-3">
           <svg width="10" height="10" viewBox="0 0 24 24" fill="#FF6B35"><circle cx="12" cy="12" r="10"/></svg>
-          ROUND <span id="hero-round" class="text-white">1</span> <span id="hero-status">STANDBY</span>
+          ROUND <span id="hero-round" class="text-white">1</span> <span id="hero-status">STARTING SOON</span>
         </div>
         <div class="flex items-center gap-2 justify-center">
           <span class="font-mono text-[10px] text-white/25 tracking-wider">CA:</span>
-          <button onclick="copyCA()" id="ca-display" class="font-mono text-[10px] text-white/40 hover:text-burn-orange/80 transition cursor-pointer bg-white/[0.03] px-2.5 py-1 rounded-md border border-white/5 hover:border-burn-orange/20" title="Click to copy">TBA</button>
+          <button onclick="copyCA()" id="ca-display" class="font-mono text-[10px] text-white/40 hover:text-burn-orange/80 transition cursor-pointer bg-white/[0.03] px-2.5 py-1 rounded-md border border-white/5 hover:border-burn-orange/20" title="Click to copy">5bYX...pump</button>
           <span id="ca-copied" class="text-[9px] font-mono text-burn-orange opacity-0 transition-opacity">Copied!</span>
         </div>
         <a href="https://x.com/burngame_sol" target="_blank" rel="noopener" class="mt-3 inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-white/10 bg-white/[0.04] hover:bg-burn-orange/10 hover:border-burn-orange/30 transition-all group">
@@ -203,7 +203,7 @@ tailwind.config = {
     <div class="glass-card-strong p-6 sm:p-8">
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
         <div class="text-center md:text-left">
-          <div class="text-[10px] font-mono text-white/30 uppercase tracking-widest mb-2">Time Remaining</div>
+          <div id="timer-label" class="text-[10px] font-mono text-white/30 uppercase tracking-widest mb-2">Round 1 starts in</div>
           <div id="timer" class="timer-display font-orbitron text-5xl sm:text-6xl font-black text-white">--:--</div>
           <div id="overtime-badge" class="hidden mt-2 inline-flex items-center gap-1.5 text-xs font-mono text-burn-red">
             <span class="relative flex h-2 w-2"><span class="animate-ping absolute h-full w-full rounded-full bg-red-500 opacity-75"></span><span class="relative rounded-full h-2 w-2 bg-red-500"></span></span>
@@ -438,9 +438,11 @@ tailwind.config = {
 
 <script>
 // ===== CONFIG =====
-const TOKEN_MINT = 'TBA';
+const TOKEN_MINT = '5bYXJUrtqD7PUy8UUmMTHQDCHMn5J9jm7RAwgwrjpump';
 const TOKEN_DECIMALS = 6;
 const GAME_LAUNCHED = false;
+const PRE_ROUND_COUNTDOWN = true;
+const ROUND_START_TIME = Date.now() + 30 * 60 * 1000; // 30 minutes from now
 const RPC_ENDPOINTS = [
   'https://api.mainnet-beta.solana.com',
   'https://solana-mainnet.g.alchemy.com/v2/demo'
@@ -529,13 +531,37 @@ function switchTab(tab) {
 // ===== TIMER =====
 function startTimer() {
   if (!GAME_LAUNCHED) {
-    document.getElementById('timer').textContent = '60:00';
-    document.getElementById('hero-round').textContent = '1';
-    document.getElementById('stat-rounds').textContent = '0';
+    if (PRE_ROUND_COUNTDOWN) {
+      document.getElementById('hero-round').textContent = '1';
+      document.getElementById('hero-status').textContent = 'STARTING SOON';
+      document.getElementById('stat-rounds').textContent = '0';
+      updatePreRoundTimer();
+      state.timerInterval = setInterval(updatePreRoundTimer, 1000);
+    } else {
+      document.getElementById('timer').textContent = '60:00';
+      document.getElementById('hero-round').textContent = '1';
+      document.getElementById('stat-rounds').textContent = '0';
+    }
     return;
   }
   updateTimer();
   state.timerInterval = setInterval(updateTimer, 1000);
+}
+
+function updatePreRoundTimer() {
+  const remaining = Math.max(0, Math.floor((ROUND_START_TIME - Date.now()) / 1000));
+  const el = document.getElementById('timer');
+  el.textContent = formatTime(remaining);
+  if (remaining <= 300) {
+    el.classList.add('timer-critical');
+  } else {
+    el.classList.remove('timer-critical');
+  }
+  if (remaining <= 0) {
+    clearInterval(state.timerInterval);
+    el.textContent = '00:00';
+    document.getElementById('hero-status').textContent = 'ROUND 1 LIVE';
+  }
 }
 
 function updateTimer() {
