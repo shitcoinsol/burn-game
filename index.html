@@ -559,9 +559,24 @@ function updatePreRoundTimer() {
   }
   if (remaining <= 0) {
     clearInterval(state.timerInterval);
-    el.textContent = '00:00';
-    document.getElementById('hero-status').textContent = 'ROUND 1 LIVE';
+    el.classList.remove('timer-critical');
+    goLive();
   }
+}
+
+async function goLive() {
+  document.getElementById('hero-status').textContent = 'ACTIVE';
+  document.getElementById('timer-label').textContent = 'Time Remaining';
+  const warn = document.getElementById('prelaunch-warning');
+  if (warn) warn.classList.add('hidden');
+  // Start real round timer
+  updateTimer();
+  state.timerInterval = setInterval(updateTimer, 1000);
+  // Start fetching burns
+  await fetchBurnTransactions();
+  state.pollInterval = setInterval(() => {
+    if (state.currentTab === 'arena') { fetchBurnTransactions(); }
+  }, POLL_INTERVAL);
 }
 
 function updateTimer() {
@@ -868,7 +883,15 @@ async function init() {
   renderHistory();
 
   // Initial fetch
-  if (GAME_LAUNCHED) {
+  if (GAME_LAUNCHED || (PRE_ROUND_COUNTDOWN && Date.now() >= ROUND_START_TIME)) {
+    if (!GAME_LAUNCHED && PRE_ROUND_COUNTDOWN) {
+      // Countdown already passed, go live immediately
+      document.getElementById('hero-status').textContent = 'ACTIVE';
+      document.getElementById('timer-label').textContent = 'Time Remaining';
+      clearInterval(state.timerInterval);
+      updateTimer();
+      state.timerInterval = setInterval(updateTimer, 1000);
+    }
     await fetchBurnTransactions();
 
     // Poll for new burns every 20 seconds
